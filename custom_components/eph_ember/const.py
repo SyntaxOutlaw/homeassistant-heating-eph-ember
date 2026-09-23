@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 
-DOMAIN = "ephember"
+DOMAIN = "eph_ember"
 MANUFACTURER = "EPH Controls"
 
 CONF_API_VERSION = "api_version"

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from custom_components.ephember.const import (
+from custom_components.eph_ember.const import (
     API_VERSION_AUTO,
     API_VERSION_CURRENT,
     API_VERSION_LEGACY,
 )
-from custom_components.ephember.domain.models import ApiKind
+from custom_components.eph_ember.domain.models import ApiKind
 
 
 def api_kind_from_config(value: str | None) -> ApiKind:

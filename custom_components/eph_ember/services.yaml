@@ -4,7 +4,7 @@ boost_zone:
   target:
     entity:
       domain: climate
-      integration: ephember
+      integration: eph_ember
   fields:
     hours:
       name: Hours
@@ -32,4 +32,4 @@ cancel_boost:
   target:
     entity:
       domain: climate
-      integration: ephember
+      integration: eph_ember

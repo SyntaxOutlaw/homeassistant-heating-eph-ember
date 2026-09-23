@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "EPH Controls",
+        "title": "EPH Ember",
         "description": "Sign in with your EMBER account. API version auto-detects GW01/EMBER-PS vs newer gateways.",
         "data": {
           "username": "Email",
@@ -14,14 +14,14 @@
         }
       },
       "reauth_confirm": {
-        "title": "Re-authenticate EPH Controls",
+        "title": "Re-authenticate EPH Ember",
         "description": "Password for {username} is no longer valid.",
         "data": {
           "password": "Password"
         }
       },
       "reconfigure": {
-        "title": "Reconfigure EPH Controls",
+        "title": "Reconfigure EPH Ember",
         "description": "Change which EMBER API generation this account uses.",
         "data": {
           "api_version": "API version"
@@ -43,7 +43,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "EPH Controls options",
+        "title": "EPH Ember options",
         "data": {
           "api_version": "API version"
         }
@@ -77,26 +77,53 @@
           "offline": "Offline"
         }
       },
-      "invite_code": {"name": "Invite code"},
-      "weather_location": {"name": "Weather location"},
+      "invite_code": {
+        "name": "Invite code"
+      },
+      "weather_location": {
+        "name": "Weather location"
+      },
       "holiday_mode": {
         "name": "Holiday mode",
-        "state": {"on": "On", "off": "Off"}
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "frost_protection": {
         "name": "Frost protection",
-        "state": {"on": "On", "off": "Off"}
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
-      "frost_protection_temperature": {"name": "Frost temperature"},
-      "quick_boost_temperature": {"name": "Quick boost temperature"},
-      "gateway_datetime": {"name": "Gateway time"},
-      "utc_time_offset": {"name": "UTC offset"},
-      "home_id": {"name": "Home ID"},
-      "zone_count": {"name": "Zones"},
-      "api_kind": {"name": "API"},
+      "frost_protection_temperature": {
+        "name": "Frost temperature"
+      },
+      "quick_boost_temperature": {
+        "name": "Quick boost temperature"
+      },
+      "gateway_datetime": {
+        "name": "Gateway time"
+      },
+      "utc_time_offset": {
+        "name": "UTC offset"
+      },
+      "home_id": {
+        "name": "Home ID"
+      },
+      "zone_count": {
+        "name": "Zones"
+      },
+      "api_kind": {
+        "name": "API"
+      },
       "supports_advance": {
         "name": "Supports Advance",
-        "state": {"on": "Yes", "off": "No"}
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
       }
     }
   },
@@ -122,12 +149,12 @@
   },
   "issues": {
     "deprecated_yaml": {
-      "title": "EPH Controls YAML configuration is deprecated",
-      "description": "Configuring EPH Controls in configuration.yaml is deprecated and will be removed. Remove the `ephember:` block and use the UI integration instead."
+      "title": "EPH Ember YAML configuration is deprecated",
+      "description": "Configuring EPH Ember in configuration.yaml is deprecated and will be removed. Remove any `eph_ember:` block and use the UI integration instead."
     },
     "deprecated_yaml_climate": {
-      "title": "EPH Controls climate YAML is deprecated",
-      "description": "The `climate: - platform: ephember` YAML configuration is deprecated. Remove that block after the UI config entry has been created."
+      "title": "EPH Ember climate YAML is deprecated",
+      "description": "The `climate: - platform: eph_ember` YAML configuration is deprecated. Remove that block after the UI config entry has been created."
     }
   }
 }

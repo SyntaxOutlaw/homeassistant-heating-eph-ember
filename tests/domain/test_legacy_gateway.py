@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.ephember.domain.models import ZoneMode
-from custom_components.ephember.out.legacy.gateway import LegacyGateway
+from custom_components.eph_ember.domain.models import ZoneMode
+from custom_components.eph_ember.out.legacy.gateway import LegacyGateway
 
 
 class _Resp:

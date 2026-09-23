@@ -5,7 +5,7 @@
  *   heat → On, fan_only → Boost, off → Off
  *   preset schedule → timetable, preset advance → Advance
  */
-const CARD_VERSION = "1.2.0";
+const CARD_VERSION = "1.3.0";
 
 const MODE_UI = {
   heat: { label: "On", icon: "mdi:fire" },
@@ -22,14 +22,14 @@ const PRESET_UI = {
 
 class EphEmberClimateCard extends HTMLElement {
   static getConfigElement() {
-    return document.createElement("ephember-climate-card-editor");
+    return document.createElement("eph-ember-climate-card-editor");
   }
 
   static getStubConfig(hass, entities) {
     const climate =
       entities.find((e) => e.startsWith("climate.") && e.includes("home")) ||
       entities.find((e) => e.startsWith("climate."));
-    return { type: "custom:ephember-climate-card", entity: climate || "" };
+    return { type: "custom:eph-ember-climate-card", entity: climate || "" };
   }
 
   setConfig(config) {
@@ -340,14 +340,14 @@ class EphEmberClimateCardEditor extends HTMLElement {
   }
 }
 
-customElements.define("ephember-climate-card", EphEmberClimateCard);
-customElements.define("ephember-climate-card-editor", EphEmberClimateCardEditor);
+customElements.define("eph-ember-climate-card", EphEmberClimateCard);
+customElements.define("eph-ember-climate-card-editor", EphEmberClimateCardEditor);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: "ephember-climate-card",
+  type: "eph-ember-climate-card",
   name: "EPH Ember Climate",
-  description: "On / Boost / Off with Schedule and Advance presets for EPH Controls.",
+  description: "On / Boost / Off with Schedule and Advance presets for EPH Ember.",
   preview: true,
 });
 

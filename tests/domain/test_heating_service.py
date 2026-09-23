@@ -7,10 +7,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.ephember.domain.heating_service import HeatingService, detect_api_kind
-from custom_components.ephember.domain.models import ApiKind, Home, HvacDemand, Zone, ZoneMode
-from custom_components.ephember.error_handling import EmberApiError, ZoneNotFound
-from custom_components.ephember.out.legacy.gateway import (
+from custom_components.eph_ember.domain.heating_service import HeatingService, detect_api_kind
+from custom_components.eph_ember.domain.models import ApiKind, Home, HvacDemand, Zone, ZoneMode
+from custom_components.eph_ember.error_handling import EmberApiError, ZoneNotFound
+from custom_components.eph_ember.out.legacy.gateway import (
     demand_from_legacy_zone,
     home_from_detail,
     home_from_list_row,

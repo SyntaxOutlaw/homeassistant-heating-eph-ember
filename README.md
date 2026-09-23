@@ -1,4 +1,4 @@
-# EPH Controls for Home Assistant
+# EPH Ember for Home Assistant
 
 [![License](https://img.shields.io/github/license/SyntaxOutlaw/homeassistant-heating-eph-ember)](https://github.com/SyntaxOutlaw/homeassistant-heating-eph-ember/blob/main/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/SyntaxOutlaw/homeassistant-heating-eph-ember?style=flat)](https://github.com/SyntaxOutlaw/homeassistant-heating-eph-ember/stargazers)
@@ -6,7 +6,9 @@
 [![Last commit](https://img.shields.io/github/last-commit/SyntaxOutlaw/homeassistant-heating-eph-ember)](https://github.com/SyntaxOutlaw/homeassistant-heating-eph-ember/commits)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-green)](https://coff.ee/syntaxoutlaw)
 
-Custom integration for **EPH / EMBER** heating gateways — including legacy **GW01 / EMBER-PS** systems that the [built-in Home Assistant EPH Controls integration](https://www.home-assistant.io/integrations/ephember/) cannot talk to.
+Custom integration for **EPH / EMBER** heating gateways — including legacy **GW01 / EMBER-PS** systems that the [built-in Home Assistant EPH Controls (`ephember`) integration](https://www.home-assistant.io/integrations/ephember/) cannot talk to.
+
+Domain: **`eph_ember`** (does not override the built-in `ephember` integration).
 
 UI config flow, secure credential storage, climate entities with **On / Boost / Off** plus a **Schedule** preset, gateway diagnostics, and automatic legacy vs current API detection.
 
@@ -28,7 +30,7 @@ Testers with **EMBER-PS2**, **GW04**, **COMBIPACK**, or other gateways are welco
 
 ## Why this exists
 
-Home Assistant’s stock [`ephember`](https://www.home-assistant.io/integrations/ephember/) integration targets newer EMBER cloud APIs (`pyephember2`). Older **EMBER-PS / GW01** gateways use a different polling API. This custom component speaks both, picks the right one per home, and is set up entirely in the UI.
+Home Assistant’s stock [`ephember`](https://www.home-assistant.io/integrations/ephember/) integration targets newer EMBER cloud APIs (`pyephember2`). Older **EMBER-PS / GW01** gateways use a different polling API. This custom component speaks both, picks the right one per home, and is set up entirely in the UI — under its own domain so it can sit alongside (or replace your use of) the built-in integration without conflicting in HACS.
 
 ## Features
 
@@ -62,18 +64,18 @@ Schedule times and programs are configured in the **EMBER app** or on the **time
 2. **HACS → Integrations → ⋮ (menu) → Custom repositories**
 3. Repository: `https://github.com/SyntaxOutlaw/homeassistant-heating-eph-ember`
 4. Category: **Integration**
-5. Add it, then find **EPH Controls (GW01 + current)** and download.
+5. Add it, then find **EPH Ember** and download.
 6. Restart Home Assistant.
-7. **Settings → Devices & services → Add integration → EPH Controls**
+7. **Settings → Devices & services → Add integration → EPH Ember**
 
-This uses the same domain as the built-in `ephember` integration (`custom_components` wins). Remove any YAML `climate: - platform: ephember` block first.
+If you previously installed an older build of this project under domain `ephember`, remove that custom component / config entry first, then install this `eph_ember` version.
 
 ### Manual / Docker bind-mount
 
 Copy or mount this package into your Home Assistant `custom_components` folder:
 
 ```text
-config/custom_components/ephember/
+config/custom_components/eph_ember/
 ```
 
 Example Compose volume (adjust paths to your machine):
@@ -81,30 +83,28 @@ Example Compose volume (adjust paths to your machine):
 ```yaml
 volumes:
   - ./config:/config
-  - /path/to/homeassistant-heating-eph-ember/custom_components/ephember:/config/custom_components/ephember
+  - /path/to/homeassistant-heating-eph-ember/custom_components/eph_ember:/config/custom_components/eph_ember
 ```
 
 Restart Home Assistant, then:
 
-**Settings → Devices & services → Add integration → EPH Controls**
+**Settings → Devices & services → Add integration → EPH Ember**
 
 Sign in with your EMBER app email and password.
 
 ### Migrating off the built-in YAML integration
 
-If you previously used the [official EPH Controls (`ephember`) integration](https://www.home-assistant.io/integrations/ephember/) via YAML, **remove that block** after this custom integration is configured. Leaving both will conflict.
+If you previously used the [official EPH Controls (`ephember`) integration](https://www.home-assistant.io/integrations/ephember/) via YAML, you can keep or remove it independently — this custom integration uses domain **`eph_ember`**, so it will not override the built-in one.
 
-Delete from `configuration.yaml`:
+Optional: remove from `configuration.yaml` if you no longer want the stock integration:
 
 ```yaml
-# Built-in / legacy Home Assistant ephember — remove this
+# Built-in Home Assistant ephember — optional to remove
 climate:
   - platform: ephember
     username: YOUR_EMAIL
     password: YOUR_PASSWORD
 ```
-
-Restart HA. A repair issue will also remind you if the old platform config is still present.
 
 ## Dashboard card
 
@@ -123,27 +123,27 @@ After installing / restarting, add a card → **Custom: EPH Ember Climate**, pic
 YAML:
 
 ```yaml
-type: custom:ephember-climate-card
+type: custom:eph-ember-climate-card
 entity: climate.home_downstairs
 ```
 
 If the card is missing from the picker (YAML-mode Lovelace), add this resource:
 
 ```yaml
-url: /ephember-local/ephember-climate-card.js?v=1.2.0
+url: /eph_ember-local/eph-ember-climate-card.js?v=1.3.0
 type: module
 ```
 
 ## Architecture (for developers)
 
 ```text
-custom_components/ephember/
+custom_components/eph_ember/
   domain/        # HeatingService, models (no HA / HTTP)
   ports/         # EmberGateway ABC
   into/ha/       # config flow, coordinator, climate, sensors, Lovelace card registration
   out/legacy/    # GW01 HTTP (/zones/polling, setModel, boost, …)
   out/current/   # pyephember2 adapter
-  www/           # ephember-climate-card.js
+  www/           # eph-ember-climate-card.js
 ```
 
 Legacy state: `POST /zones/polling`. Writes follow the classic `pyephember` payloads (`setTargetTemperature`, `setModel`, `boost`, `cancelBoost`). Home metadata is enriched from `/homes/detail` (invite code, weather, frost, …).
@@ -167,7 +167,7 @@ What the suite covers today:
 
 There are no live-cloud tests in CI — do not commit EMBER credentials. For a manual check against hardware:
 
-1. Mount or copy `custom_components/ephember` into a Home Assistant instance (see Install).
+1. Mount or copy `custom_components/eph_ember` into a Home Assistant instance (see Install).
 2. Add the integration via the UI with a test account.
 3. Confirm zones appear; try **On**, **Schedule**, **Boost**, and **Off**. On GW01, Advance stays hidden.
 4. Download diagnostics from the integration (password / tokens should be redacted) if filing an issue.
