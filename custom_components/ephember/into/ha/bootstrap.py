@@ -17,6 +17,7 @@ from ...const import DOMAIN
 from ...error_handling import EmberApiError, InvalidCredentials
 from .coordinator import EphEmberDataUpdateCoordinator
 from .dependencies import build_heating_service
+from .frontend import async_register_frontend
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ CONFIG_SCHEMA = vol.Schema(
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up from YAML if present, then hand off to config entries."""
     hass.data.setdefault(DOMAIN, {})
+    await async_register_frontend(hass)
 
     if DOMAIN in config:
         hass.async_create_task(

@@ -55,15 +55,15 @@
       "zone": {
         "name": "{name}",
         "state": {
-          "auto": "Auto",
-          "heat": "Boost",
-          "heat_cool": "Advance",
+          "heat": "On",
+          "fan_only": "Boost",
           "off": "Off"
         },
         "state_attributes": {
           "preset_mode": {
             "state": {
-              "all_day": "All day"
+              "schedule": "Schedule",
+              "advance": "Advance"
             }
           }
         }

@@ -8,22 +8,23 @@
 
 Custom integration for **EPH / EMBER** heating gateways — including legacy **GW01 / EMBER-PS** systems that the [built-in Home Assistant EPH Controls integration](https://www.home-assistant.io/integrations/ephember/) cannot talk to.
 
-UI config flow, secure credential storage, climate entities with **Boost** and **Advance**, and automatic legacy vs current API detection.
+UI config flow, secure credential storage, climate entities with **On / Boost / Off** plus a **Schedule** preset, gateway diagnostics, and automatic legacy vs current API detection.
 
 ## Compatibility
 
 | | Legacy (`GW01` / `EMBER-PS`) | Current (`pyephember2`) |
 | --- | --- | --- |
-| Modes (Auto / Off / All day) | Supported | Expected to work |
+| Modes **On** / **Boost** / **Off** | Supported | Expected to work |
+| **Schedule** preset (3 timed periods) | Supported | Expected to work |
 | Target temperature | Supported | Expected to work |
-| Boost | Supported | Expected to work |
-| Advance | Hidden in UI (not available via cloud) | Shown; wired through `pyephember2` — untested on hardware |
+| **Advance** preset | Not available via cloud | Expected to work — untested on hardware |
+| Gateway diagnostic sensors | Supported | Expected to work |
 
 **Tested on:** EPH Ember Gateway **GW01** (EMBER-PS) only.
 
-**Current / newer gateways** (anything that is not `deviceType == 1` / `EMBER-PS`) go through the same [`pyephember2`](https://pypi.org/project/pyephember2/) stack as Home Assistant’s built-in integration: mode, setpoint, boost, and advance calls are implemented against that library. They have not been run on real non-GW01 hardware here yet, but the path is the standard one — if the stock `ephember` integration would work for your gateway, this custom component should too (plus UI config and shared code with the legacy path). Auto-detect can also fall back to legacy polling if the current API errors.
+**Current / newer gateways** (anything that is not `deviceType == 1` / `EMBER-PS`) go through the same [`pyephember2`](https://pypi.org/project/pyephember2/) stack as Home Assistant’s built-in integration. They have not been run on real non-GW01 hardware here yet — if the stock `ephember` integration would work for your gateway, this custom component should too (plus UI config and the shared legacy path). Auto-detect can fall back to legacy polling if the current API errors.
 
-Testers with **EMBER-PS2**, **GW04**, **COMBIPACK**, or other gateways are very welcome — open an issue with your `sysTemType` / `deviceType` from diagnostics if something misbehaves.
+Testers with **EMBER-PS2**, **GW04**, **COMBIPACK**, or other gateways are welcome — open an issue with your `sysTemType` / `deviceType` from diagnostics if something misbehaves.
 
 ## Why this exists
 
@@ -34,8 +35,24 @@ Home Assistant’s stock [`ephember`](https://www.home-assistant.io/integrations
 - Config entry + reauth (credentials in HA storage, not YAML)
 - Auto API detect (`deviceType == 1` or `sysTemType == EMBER-PS` → legacy)
 - Optional override: `auto` / `legacy` / `current`
-- Climate per zone: modes, setpoint, **Boost**, **Advance**, All day preset
-- Hexagonal layout for maintainability: `domain/` · `ports/` · `into/ha/` · `out/`
+- Climate per zone:
+  - **Modes:** On (permanent), Boost (timed), Off
+  - **Presets:** Schedule (follow the Ember timetable); Advance on current-API gateways
+- Gateway device info (model / hardware / serial) plus diagnostic sensors (invite code, weather location, frost, online status, …)
+- Optional Lovelace card with clearer mode / preset icons
+- Hexagonal layout: `domain/` · `ports/` · `into/ha/` · `out/`
+
+### Climate controls (how they map)
+
+| UI | Meaning |
+| --- | --- |
+| **On** | Permanent on until you change mode |
+| **Boost** | Timed boost (default 1 hour) |
+| **Off** | Permanently off |
+| **Schedule** | Follow the zone’s programmed on/off periods (set in the EMBER app / timeclock) |
+| **Advance** | Jump to the next schedule period (current API only; hidden on GW01) |
+
+Schedule times and programs are configured in the **EMBER app** or on the **timeclock** — this integration switches modes and setpoints; it does not edit the timetable graph.
 
 ## Install
 
@@ -77,18 +94,47 @@ climate:
 
 Restart HA. A repair issue will also remind you if the old platform config is still present.
 
+## Dashboard card
+
+Stock climate cards use Home Assistant’s built-in HVAC icons (so **Boost** may show a fan glyph). This integration ships a custom card with clearer controls:
+
+| Control | Icon |
+| --- | --- |
+| On | fire |
+| Boost | rocket |
+| Off | power |
+| Schedule (preset) | calendar clock |
+| Advance (preset) | skip forward |
+
+After installing / restarting, add a card → **Custom: EPH Ember Climate**, pick a zone entity. Hard-refresh the browser if an older card version is cached.
+
+YAML:
+
+```yaml
+type: custom:ephember-climate-card
+entity: climate.home_downstairs
+```
+
+If the card is missing from the picker (YAML-mode Lovelace), add this resource:
+
+```yaml
+url: /ephember-local/ephember-climate-card.js?v=1.2.0
+type: module
+```
+
 ## Architecture (for developers)
 
 ```text
 custom_components/ephember/
   domain/        # HeatingService, models (no HA / HTTP)
   ports/         # EmberGateway ABC
-  into/ha/       # config flow, coordinator, climate
+  into/ha/       # config flow, coordinator, climate, sensors, Lovelace card registration
   out/legacy/    # GW01 HTTP (/zones/polling, setModel, boost, …)
   out/current/   # pyephember2 adapter
+  www/           # ephember-climate-card.js
 ```
 
-Legacy state: `POST /zones/polling`. Writes follow the classic `pyephember` payloads (`setTargetTemperature`, `setModel`, `boost`, `cancelBoost`).
+Legacy state: `POST /zones/polling`. Writes follow the classic `pyephember` payloads (`setTargetTemperature`, `setModel`, `boost`, `cancelBoost`). Home metadata is enriched from `/homes/detail` (invite code, weather, frost, …).
 
 ## Development & testing
 
@@ -104,14 +150,14 @@ python -m pytest tests/domain -q
 What the suite covers today:
 
 - API kind detection (legacy vs current) and fallback
-- Legacy `/zones/polling` mapping (temps, modes, demand, `-300` sentinel)
+- Legacy `/zones/polling` and `/homes/detail` mapping (temps, modes, demand, `-300` sentinel, gateway metadata)
 - HeatingService command routing (mode, setpoint, boost, advance)
 
 There are no live-cloud tests in CI — do not commit EMBER credentials. For a manual check against hardware:
 
 1. Mount or copy `custom_components/ephember` into a Home Assistant instance (see Install).
 2. Add the integration via the UI with a test account.
-3. Confirm zones appear, modes change, and Boost works; on GW01 expect Advance to fail via cloud.
+3. Confirm zones appear; try **On**, **Schedule**, **Boost**, and **Off**. On GW01, Advance stays hidden.
 4. Download diagnostics from the integration (password / tokens should be redacted) if filing an issue.
 
 When adding gateway types, prefer fixtures under `tests/` over hitting the live API in unit tests.

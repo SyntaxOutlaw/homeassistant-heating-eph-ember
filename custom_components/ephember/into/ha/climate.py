@@ -36,17 +36,22 @@ from ...const import (
     DOMAIN,
     MAX_TEMP,
     MIN_TEMP,
-    PRESET_ALL_DAY,
+    PRESET_ADVANCE,
+    PRESET_SCHEDULE,
     SERVICE_BOOST_ZONE,
     SERVICE_CANCEL_BOOST,
     TEMP_STEP,
 )
-from ...domain.models import ApiKind, Home, HvacDemand, Zone, ZoneMode
+from ...domain.models import Home, HvacDemand, Zone, ZoneMode
 from ...error_handling import EmberApiError
 from .coordinator import EphEmberDataUpdateCoordinator
 from .devices import gateway_device_info
 
 _LOGGER = logging.getLogger(__name__)
+
+# Modes: heat → On (flame), fan_only → Boost, off → Off.
+# Presets: schedule → Auto timetable, advance → schedule advance (current API).
+_MODE_BOOST = HVACMode.FAN_ONLY
 
 
 async def async_setup_platform(
@@ -112,9 +117,8 @@ class EphEmberClimate(CoordinatorEntity[EphEmberDataUpdateCoordinator], ClimateE
     _attr_has_entity_name = True
     _attr_name = None
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    # HEAT is labeled "Boost"; HEAT_COOL is labeled "Advance" (current API only).
-    _attr_preset_modes = [PRESET_ALL_DAY]
     _attr_translation_key = "zone"
+    _attr_hvac_modes = [HVACMode.HEAT, _MODE_BOOST, HVACMode.OFF]
 
     def __init__(
         self,
@@ -141,11 +145,11 @@ class EphEmberClimate(CoordinatorEntity[EphEmberDataUpdateCoordinator], ClimateE
         return gateway_device_info(self.home)
 
     @property
-    def hvac_modes(self) -> list[HVACMode]:
-        """Return modes; omit Advance on legacy gateways."""
-        modes = [HVACMode.AUTO, HVACMode.HEAT, HVACMode.OFF]
+    def preset_modes(self) -> list[str]:
+        """Schedule always; Advance only on current-API gateways."""
+        modes = [PRESET_SCHEDULE]
         if self.home.supports_advance:
-            modes.insert(2, HVACMode.HEAT_COOL)
+            modes.append(PRESET_ADVANCE)
         return modes
 
     @property
@@ -201,22 +205,27 @@ class EphEmberClimate(CoordinatorEntity[EphEmberDataUpdateCoordinator], ClimateE
 
     @property
     def hvac_mode(self) -> HVACMode:
-        """Return Boost / Advance / Auto / Off."""
+        """Return On / Boost / Off."""
         zone = self.zone
         if zone.is_boost_active:
-            return HVACMode.HEAT
-        if zone.is_advance_active:
-            return HVACMode.HEAT_COOL
+            return _MODE_BOOST
         if zone.mode == ZoneMode.OFF:
             return HVACMode.OFF
-        return HVACMode.AUTO
+        # Permanent On, Schedule, and Advance all report as heating-enabled (On).
+        return HVACMode.HEAT
 
     @property
     def preset_mode(self) -> str | None:
-        """Return all_day when that EPH mode is active."""
-        if self.zone.mode == ZoneMode.ALL_DAY and not self.zone.is_boost_active:
-            return PRESET_ALL_DAY
-        return None
+        """Return Schedule / Advance when that program is active."""
+        zone = self.zone
+        if zone.is_boost_active or zone.mode == ZoneMode.OFF:
+            return None
+        if zone.is_advance_active and self.home.supports_advance:
+            return PRESET_ADVANCE
+        if zone.mode == ZoneMode.ON:
+            return None
+        # AUTO / ALL_DAY → follow timetable
+        return PRESET_SCHEDULE
 
     @property
     def hvac_action(self) -> HVACAction | None:
@@ -244,6 +253,7 @@ class EphEmberClimate(CoordinatorEntity[EphEmberDataUpdateCoordinator], ClimateE
             ATTR_BOOST_FINISH: zone.boost_finish.isoformat() if zone.boost_finish else None,
             ATTR_PREFIX: zone.prefix,
             "advance_active": zone.is_advance_active,
+            "eph_mode": int(zone.mode),
         }
 
     async def _async_clear_overrides(self) -> None:
@@ -262,18 +272,11 @@ class EphEmberClimate(CoordinatorEntity[EphEmberDataUpdateCoordinator], ClimateE
                 )
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        """Set Auto/Off, or activate Boost / Advance."""
-        if hvac_mode == HVACMode.HEAT:
+        """Set Off / permanent On, or activate Boost."""
+        if hvac_mode == _MODE_BOOST:
             await self.coordinator.service.async_boost(
                 self._zone_id, DEFAULT_BOOST_HOURS, self._boost_temperature()
             )
-            await self.coordinator.async_request_refresh()
-            return
-        if hvac_mode == HVACMode.HEAT_COOL:
-            if not self.home.supports_advance:
-                _LOGGER.error("Advance is not supported on this gateway")
-                return
-            await self.coordinator.service.async_set_advance(self._zone_id, True)
             await self.coordinator.async_request_refresh()
             return
         if hvac_mode == HVACMode.OFF:
@@ -281,21 +284,35 @@ class EphEmberClimate(CoordinatorEntity[EphEmberDataUpdateCoordinator], ClimateE
             await self.coordinator.service.async_set_mode(self._zone_id, ZoneMode.OFF)
             await self.coordinator.async_request_refresh()
             return
-        if hvac_mode == HVACMode.AUTO:
+        if hvac_mode == HVACMode.HEAT:
+            # Permanent On (not schedule).
             await self._async_clear_overrides()
-            await self.coordinator.service.async_set_mode(self._zone_id, ZoneMode.AUTO)
+            await self.coordinator.service.async_set_mode(self._zone_id, ZoneMode.ON)
             await self.coordinator.async_request_refresh()
             return
         _LOGGER.error("Unsupported HVAC mode %s", hvac_mode)
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set all-day preset."""
-        if preset_mode != PRESET_ALL_DAY:
-            _LOGGER.error("Unsupported preset %s", preset_mode)
+        """Set Schedule or Advance."""
+        if preset_mode == PRESET_SCHEDULE:
+            await self._async_clear_overrides()
+            await self.coordinator.service.async_set_mode(self._zone_id, ZoneMode.AUTO)
+            await self.coordinator.async_request_refresh()
             return
-        await self._async_clear_overrides()
-        await self.coordinator.service.async_set_mode(self._zone_id, ZoneMode.ALL_DAY)
-        await self.coordinator.async_request_refresh()
+        if preset_mode == PRESET_ADVANCE:
+            if not self.home.supports_advance:
+                _LOGGER.error("Advance is not supported on this gateway")
+                return
+            if self.zone.is_boost_active:
+                await self.coordinator.service.async_cancel_boost(self._zone_id)
+            if self.zone.mode == ZoneMode.OFF:
+                await self.coordinator.service.async_set_mode(
+                    self._zone_id, ZoneMode.AUTO
+                )
+            await self.coordinator.service.async_set_advance(self._zone_id, True)
+            await self.coordinator.async_request_refresh()
+            return
+        _LOGGER.error("Unsupported preset %s", preset_mode)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""

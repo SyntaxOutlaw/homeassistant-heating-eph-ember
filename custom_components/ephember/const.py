@@ -22,7 +22,8 @@ ATTR_GATEWAY_ID = "gateway_id"
 ATTR_PREFIX = "prefix"
 ATTR_TEMPERATURE_AVAILABLE = "temperature_available"
 
-PRESET_ALL_DAY = "all_day"
+PRESET_SCHEDULE = "schedule"
+PRESET_ADVANCE = "advance"
 
 SERVICE_BOOST_ZONE = "boost_zone"
 SERVICE_CANCEL_BOOST = "cancel_boost"
