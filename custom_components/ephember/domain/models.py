@@ -43,6 +43,32 @@ class Home:
     system_type: str | None
     zone_count: int | None
     api_kind: ApiKind
+    home_id: int | None = None
+    invite_code: str | None = None
+    is_online: bool | None = None
+    weather_location: str | None = None
+    holiday_mode_active: bool | None = None
+    frost_protection_enabled: bool | None = None
+    frost_protection_temperature: float | None = None
+    quick_boost_temperature: float | None = None
+    gateway_datetime: str | None = None
+    utc_time_offset: str | None = None
+
+    @property
+    def supports_advance(self) -> bool:
+        """Cloud Advance is only available on the current API path."""
+        return self.api_kind == ApiKind.CURRENT
+
+    @property
+    def hardware_label(self) -> str | None:
+        """Human-readable gateway label when known."""
+        if self.device_type == 1 or self.system_type == "EMBER-PS":
+            return "GW01"
+        if self.system_type:
+            return self.system_type
+        if self.device_type is not None:
+            return f"Type {self.device_type}"
+        return None
 
 
 @dataclass(frozen=True, slots=True)

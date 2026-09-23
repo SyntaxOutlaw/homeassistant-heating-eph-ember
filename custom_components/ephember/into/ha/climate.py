@@ -17,7 +17,6 @@ from homeassistant.const import ATTR_TEMPERATURE, CONF_PASSWORD, CONF_USERNAME, 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers import issue_registry as ir
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -35,7 +34,6 @@ from ...const import (
     DEFAULT_BOOST_TEMP,
     DEFAULT_HOT_WATER_BOOST_TEMP,
     DOMAIN,
-    MANUFACTURER,
     MAX_TEMP,
     MIN_TEMP,
     PRESET_ALL_DAY,
@@ -43,9 +41,10 @@ from ...const import (
     SERVICE_CANCEL_BOOST,
     TEMP_STEP,
 )
-from ...domain.models import HvacDemand, Zone, ZoneMode
+from ...domain.models import ApiKind, Home, HvacDemand, Zone, ZoneMode
 from ...error_handling import EmberApiError
 from .coordinator import EphEmberDataUpdateCoordinator
+from .devices import gateway_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,14 +84,8 @@ async def async_setup_entry(
 ) -> None:
     """Set up climate entities from a config entry."""
     coordinator: EphEmberDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    homes = {home.gateway_id: home for home in coordinator.service.homes}
     entities = [
-        EphEmberClimate(
-            coordinator,
-            zone,
-            homes[zone.gateway_id].name,
-            homes[zone.gateway_id].system_type,
-        )
+        EphEmberClimate(coordinator, zone, coordinator.service.get_home(zone.gateway_id))
         for zone in coordinator.data.values()
     ]
     async_add_entities(entities)
@@ -119,8 +112,7 @@ class EphEmberClimate(CoordinatorEntity[EphEmberDataUpdateCoordinator], ClimateE
     _attr_has_entity_name = True
     _attr_name = None
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    # HEAT is labeled "Boost"; HEAT_COOL is labeled "Advance" via translations.
-    _attr_hvac_modes = [HVACMode.AUTO, HVACMode.HEAT, HVACMode.HEAT_COOL, HVACMode.OFF]
+    # HEAT is labeled "Boost"; HEAT_COOL is labeled "Advance" (current API only).
     _attr_preset_modes = [PRESET_ALL_DAY]
     _attr_translation_key = "zone"
 
@@ -128,8 +120,7 @@ class EphEmberClimate(CoordinatorEntity[EphEmberDataUpdateCoordinator], ClimateE
         self,
         coordinator: EphEmberDataUpdateCoordinator,
         zone: Zone,
-        home_name: str,
-        system_type: str | None,
+        home: Home,
     ) -> None:
         """Initialize the climate entity."""
         super().__init__(coordinator)
@@ -137,13 +128,25 @@ class EphEmberClimate(CoordinatorEntity[EphEmberDataUpdateCoordinator], ClimateE
         self._gateway_id = zone.gateway_id
         self._attr_unique_id = f"{zone.gateway_id}_{zone.zone_id}"
         self._attr_name = zone.name
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, zone.gateway_id)},
-            manufacturer=MANUFACTURER,
-            name=home_name,
-            model=system_type or "EPH Gateway",
-        )
         self._apply_zone(zone)
+
+    @property
+    def home(self) -> Home:
+        """Return gateway metadata for this zone."""
+        return self.coordinator.service.get_home(self._gateway_id)
+
+    @property
+    def device_info(self):
+        """Attach zones to the gateway device; refresh Device info fields."""
+        return gateway_device_info(self.home)
+
+    @property
+    def hvac_modes(self) -> list[HVACMode]:
+        """Return modes; omit Advance on legacy gateways."""
+        modes = [HVACMode.AUTO, HVACMode.HEAT, HVACMode.OFF]
+        if self.home.supports_advance:
+            modes.insert(2, HVACMode.HEAT_COOL)
+        return modes
 
     @property
     def zone(self) -> Zone:
@@ -267,6 +270,9 @@ class EphEmberClimate(CoordinatorEntity[EphEmberDataUpdateCoordinator], ClimateE
             await self.coordinator.async_request_refresh()
             return
         if hvac_mode == HVACMode.HEAT_COOL:
+            if not self.home.supports_advance:
+                _LOGGER.error("Advance is not supported on this gateway")
+                return
             await self.coordinator.service.async_set_advance(self._zone_id, True)
             await self.coordinator.async_request_refresh()
             return

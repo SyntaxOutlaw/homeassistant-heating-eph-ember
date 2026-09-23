@@ -25,6 +25,14 @@ async def async_get_config_entry_diagnostics(
             "system_type": home.system_type,
             "zone_count": home.zone_count,
             "api_kind": home.api_kind.value,
+            "home_id": home.home_id,
+            "invite_code": home.invite_code,
+            "is_online": home.is_online,
+            "weather_location": home.weather_location,
+            "holiday_mode_active": home.holiday_mode_active,
+            "frost_protection_enabled": home.frost_protection_enabled,
+            "supports_advance": home.supports_advance,
+            "hardware": home.hardware_label,
         }
         for home in coordinator.service.homes
     ]

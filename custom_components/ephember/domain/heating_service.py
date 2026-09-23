@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 
 from ..error_handling import EmberApiError, ZoneNotFound
 from ..ports.gateway import EmberGateway
@@ -53,6 +54,13 @@ class HeatingService:
         """Last polled zones across all homes."""
         return list(self._zones_by_id.values())
 
+    def get_home(self, gateway_id: str) -> Home:
+        """Return a home from the last setup/refresh."""
+        for home in self._homes:
+            if home.gateway_id == gateway_id:
+                return home
+        raise ZoneNotFound(f"Unknown gateway id {gateway_id}")
+
     def get_zone(self, zone_id: int) -> Zone:
         """Return a zone from the last poll."""
         try:
@@ -67,14 +75,7 @@ class HeatingService:
         homes: list[Home] = []
         for home in raw_homes:
             kind = detect_api_kind(home, self._api_version)
-            bound = Home(
-                gateway_id=home.gateway_id,
-                name=home.name,
-                device_type=home.device_type,
-                system_type=home.system_type,
-                zone_count=home.zone_count,
-                api_kind=kind,
-            )
+            bound = replace(home, api_kind=kind)
             gateway = await self._gateway_for_kind(kind)
             self._gateway_for_home[bound.gateway_id] = gateway
             self._api_kind_for_home[bound.gateway_id] = kind
@@ -159,14 +160,7 @@ class HeatingService:
             home_index = next(
                 i for i, item in enumerate(self._homes) if item.gateway_id == home.gateway_id
             )
-            self._homes[home_index] = Home(
-                gateway_id=home.gateway_id,
-                name=home.name,
-                device_type=home.device_type,
-                system_type=home.system_type,
-                zone_count=home.zone_count,
-                api_kind=ApiKind.LEGACY,
-            )
+            self._homes[home_index] = replace(home, api_kind=ApiKind.LEGACY)
             return await self._legacy.list_zones(home.gateway_id)
 
     async def _refresh_home(self, gateway_id: str) -> None:

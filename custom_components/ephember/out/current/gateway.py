@@ -14,6 +14,58 @@ from ...ports.gateway import EmberGateway
 _LOGGER = logging.getLogger(__name__)
 
 
+def _optional_str(value: Any) -> str | None:
+    if value is None or value == "":
+        return None
+    return str(value)
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _home_from_current_raw(raw: dict[str, Any]) -> Home:
+    """Map a pyephember2 home dict, including optional gateway metadata."""
+    return Home(
+        gateway_id=str(raw["gatewayid"]),
+        name=str(raw.get("name") or "Home"),
+        device_type=raw.get("deviceType"),
+        system_type=raw.get("sysTemType"),
+        zone_count=raw.get("zoneCount"),
+        api_kind=ApiKind.CURRENT,
+        home_id=_optional_int(raw.get("homeid")),
+        invite_code=_optional_str(raw.get("invitecode")),
+        is_online=raw.get("isonline") if "isonline" in raw else None,
+        weather_location=_optional_str(raw.get("weatherlocation")),
+        holiday_mode_active=raw.get("holidaymodeactive")
+        if "holidaymodeactive" in raw
+        else None,
+        frost_protection_enabled=raw.get("frostprotectionenabled")
+        if "frostprotectionenabled" in raw
+        else None,
+        frost_protection_temperature=_optional_float(
+            raw.get("frostprotectiontemperature")
+        ),
+        quick_boost_temperature=_optional_float(raw.get("quickboosttemperature")),
+        gateway_datetime=_optional_str(raw.get("gatewaydatetime")),
+        utc_time_offset=_optional_str(raw.get("utctimeoffset")),
+    )
+
+
 def _map_current_zone(raw: dict[str, Any], gateway_id: str) -> Zone:
     """Map a pyephember2 zone dict into a domain Zone."""
     from pyephember2.pyephember2 import (
@@ -130,16 +182,7 @@ class CurrentGateway(EmberGateway):
         self._homes_cache = raw_homes
         homes: list[Home] = []
         for raw in raw_homes:
-            homes.append(
-                Home(
-                    gateway_id=str(raw["gatewayid"]),
-                    name=str(raw.get("name") or "Home"),
-                    device_type=raw.get("deviceType"),
-                    system_type=raw.get("sysTemType"),
-                    zone_count=raw.get("zoneCount"),
-                    api_kind=ApiKind.AUTO,
-                )
-            )
+            homes.append(_home_from_current_raw(raw))
         return homes
 
     async def list_zones(self, gateway_id: str) -> list[Zone]:

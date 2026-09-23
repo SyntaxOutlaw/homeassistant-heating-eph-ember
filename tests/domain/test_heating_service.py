@@ -12,6 +12,8 @@ from custom_components.ephember.domain.models import ApiKind, Home, HvacDemand, 
 from custom_components.ephember.error_handling import EmberApiError, ZoneNotFound
 from custom_components.ephember.out.legacy.gateway import (
     demand_from_legacy_zone,
+    home_from_detail,
+    home_from_list_row,
     normalize_temperature,
     zone_from_polling,
 )
@@ -71,6 +73,47 @@ class FakeGateway:
 def test_detect_api_kind_legacy() -> None:
     assert detect_api_kind(_home()) == ApiKind.LEGACY
     assert detect_api_kind(_home(device_type=4, system_type="EMBER-PS")) == ApiKind.LEGACY
+    assert _home().supports_advance is False
+    assert _home().hardware_label == "GW01"
+
+
+def test_home_from_detail_maps_gateway_fields() -> None:
+    summary = home_from_list_row(
+        {
+            "gatewayid": "3890845148",
+            "name": "Home",
+            "deviceType": 1,
+            "sysTemType": "EMBER-PS",
+            "zoneCount": 3,
+        }
+    )
+    home = home_from_detail(
+        {
+            "gatewayid": "3890845148",
+            "name": "Home",
+            "deviceType": 1,
+            "sysTemType": "EMBER-PS",
+            "zoneCount": 3,
+            "homeid": 40421,
+            "invitecode": 52644,
+            "isonline": True,
+            "weatherlocation": "Northern Ireland",
+            "holidaymodeactive": False,
+            "frostprotectionenabled": False,
+            "frostprotectiontemperature": 5.0,
+            "quickboosttemperature": 23.0,
+            "gatewaydatetime": None,
+            "utctimeoffset": None,
+        },
+        fallback=summary,
+        api_kind=ApiKind.LEGACY,
+    )
+    assert home.invite_code == "52644"
+    assert home.home_id == 40421
+    assert home.is_online is True
+    assert home.weather_location == "Northern Ireland"
+    assert home.quick_boost_temperature == 23.0
+    assert home.supports_advance is False
 
 
 def test_detect_api_kind_current() -> None:

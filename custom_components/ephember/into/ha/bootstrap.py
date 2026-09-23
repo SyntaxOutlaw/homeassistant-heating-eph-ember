@@ -20,7 +20,7 @@ from .dependencies import build_heating_service
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.CLIMATE]
+PLATFORMS = [Platform.CLIMATE, Platform.SENSOR]
 
 CONFIG_SCHEMA = vol.Schema(
     {

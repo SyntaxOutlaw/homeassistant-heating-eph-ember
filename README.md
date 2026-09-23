@@ -17,7 +17,7 @@ UI config flow, secure credential storage, climate entities with **Boost** and *
 | Modes (Auto / Off / All day) | Supported | Expected to work |
 | Target temperature | Supported | Expected to work |
 | Boost | Supported | Expected to work |
-| Advance | **Not available** via cloud (use the timeclock) | Wired through `pyephember2` — untested on hardware |
+| Advance | Hidden in UI (not available via cloud) | Shown; wired through `pyephember2` — untested on hardware |
 
 **Tested on:** EPH Ember Gateway **GW01** (EMBER-PS) only.
 

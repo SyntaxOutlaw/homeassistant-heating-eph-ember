@@ -54,17 +54,49 @@
     "climate": {
       "zone": {
         "name": "{name}",
+        "state": {
+          "auto": "Auto",
+          "heat": "Boost",
+          "heat_cool": "Advance",
+          "off": "Off"
+        },
         "state_attributes": {
-          "hvac_modes": {
-            "heat": "Boost",
-            "heat_cool": "Advance",
-            "auto": "Auto",
-            "off": "Off"
-          },
-          "preset_modes": {
-            "all_day": "All day"
+          "preset_mode": {
+            "state": {
+              "all_day": "All day"
+            }
           }
         }
+      }
+    },
+    "sensor": {
+      "gateway": {
+        "name": "Gateway",
+        "state": {
+          "online": "Online",
+          "offline": "Offline"
+        }
+      },
+      "invite_code": {"name": "Invite code"},
+      "weather_location": {"name": "Weather location"},
+      "holiday_mode": {
+        "name": "Holiday mode",
+        "state": {"on": "On", "off": "Off"}
+      },
+      "frost_protection": {
+        "name": "Frost protection",
+        "state": {"on": "On", "off": "Off"}
+      },
+      "frost_protection_temperature": {"name": "Frost temperature"},
+      "quick_boost_temperature": {"name": "Quick boost temperature"},
+      "gateway_datetime": {"name": "Gateway time"},
+      "utc_time_offset": {"name": "UTC offset"},
+      "home_id": {"name": "Home ID"},
+      "zone_count": {"name": "Zones"},
+      "api_kind": {"name": "API"},
+      "supports_advance": {
+        "name": "Supports Advance",
+        "state": {"on": "Yes", "off": "No"}
       }
     }
   },

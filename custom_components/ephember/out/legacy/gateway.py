@@ -19,6 +19,83 @@ API_BASE = "https://eu-https.topband-cloud.com/ember-back/"
 TOKEN_VALIDITY_SECONDS = 1800
 
 
+def home_from_list_row(raw: dict[str, Any], *, api_kind: ApiKind = ApiKind.AUTO) -> Home:
+    """Map a /homes/list row into a Home."""
+    return Home(
+        gateway_id=str(raw["gatewayid"]),
+        name=str(raw.get("name") or "Home"),
+        device_type=raw.get("deviceType"),
+        system_type=raw.get("sysTemType"),
+        zone_count=raw.get("zoneCount"),
+        api_kind=api_kind,
+    )
+
+
+def home_from_detail(
+    raw: dict[str, Any],
+    *,
+    api_kind: ApiKind = ApiKind.AUTO,
+    fallback: Home | None = None,
+) -> Home:
+    """Map a /homes/detail payload (or nested homes object) into a Home."""
+    data = raw
+    if isinstance(raw.get("homes"), dict):
+        data = raw["homes"]
+    elif isinstance(raw.get("homes"), list) and raw["homes"]:
+        data = raw["homes"][0]
+
+    gateway_id = str(
+        data.get("gatewayid")
+        or data.get("gateWayId")
+        or (fallback.gateway_id if fallback else "")
+    )
+    return Home(
+        gateway_id=gateway_id,
+        name=str(data.get("name") or (fallback.name if fallback else "Home")),
+        device_type=data.get("deviceType", fallback.device_type if fallback else None),
+        system_type=data.get("sysTemType", fallback.system_type if fallback else None),
+        zone_count=data.get("zoneCount", fallback.zone_count if fallback else None),
+        api_kind=api_kind,
+        home_id=_optional_int(data.get("homeid")),
+        invite_code=_optional_str(data.get("invitecode")),
+        is_online=data.get("isonline") if "isonline" in data else (
+            fallback.is_online if fallback else None
+        ),
+        weather_location=_optional_str(data.get("weatherlocation")),
+        holiday_mode_active=data.get("holidaymodeactive")
+        if "holidaymodeactive" in data
+        else (fallback.holiday_mode_active if fallback else None),
+        frost_protection_enabled=data.get("frostprotectionenabled")
+        if "frostprotectionenabled" in data
+        else (fallback.frost_protection_enabled if fallback else None),
+        frost_protection_temperature=normalize_temperature(
+            data.get("frostprotectiontemperature")
+        )
+        if data.get("frostprotectiontemperature") is not None
+        else (fallback.frost_protection_temperature if fallback else None),
+        quick_boost_temperature=normalize_temperature(data.get("quickboosttemperature"))
+        if data.get("quickboosttemperature") is not None
+        else (fallback.quick_boost_temperature if fallback else None),
+        gateway_datetime=_optional_str(data.get("gatewaydatetime")),
+        utc_time_offset=_optional_str(data.get("utctimeoffset")),
+    )
+
+
+def _optional_str(value: Any) -> str | None:
+    if value is None or value == "":
+        return None
+    return str(value)
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def normalize_temperature(value: Any) -> float | None:
     """Map API temperature sentinels to None."""
     if value is None:
@@ -133,7 +210,7 @@ class LegacyGateway(EmberGateway):
         self._token_acquired_at = datetime.now(UTC)
 
     async def list_homes(self) -> list[Home]:
-        """Return homes from /homes/list."""
+        """Return homes from /homes/list, enriched with /homes/detail."""
         await self._ensure_auth()
         payload = await self._request("GET", "homes/list")
         if payload.get("status") != 0:
@@ -143,14 +220,31 @@ class LegacyGateway(EmberGateway):
             )
         homes: list[Home] = []
         for raw in payload.get("data") or []:
+            summary = home_from_list_row(raw)
+            try:
+                detail_payload = await self._request(
+                    "POST",
+                    "homes/detail",
+                    json_body={"gateWayId": summary.gateway_id},
+                )
+            except EmberApiError as err:
+                _LOGGER.warning(
+                    "Failed to fetch homes/detail for %s: %s", summary.gateway_id, err
+                )
+                homes.append(summary)
+                continue
+            if detail_payload.get("status") != 0:
+                _LOGGER.warning(
+                    "homes/detail for %s returned status %s",
+                    summary.gateway_id,
+                    detail_payload.get("status"),
+                )
+                homes.append(summary)
+                continue
             homes.append(
-                Home(
-                    gateway_id=str(raw["gatewayid"]),
-                    name=str(raw.get("name") or "Home"),
-                    device_type=raw.get("deviceType"),
-                    system_type=raw.get("sysTemType"),
-                    zone_count=raw.get("zoneCount"),
-                    api_kind=ApiKind.AUTO,
+                home_from_detail(
+                    detail_payload.get("data") or {},
+                    fallback=summary,
                 )
             )
         return homes
