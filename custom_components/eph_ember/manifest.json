@@ -1,4 +1,6 @@
 {
+  "domain": "eph_ember",
+  "name": "EPH Ember",
   "after_dependencies": [
     "lovelace"
   ],
@@ -10,13 +12,11 @@
     "http"
   ],
   "documentation": "https://github.com/SyntaxOutlaw/homeassistant-heating-eph-ember",
-  "domain": "eph_ember",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/SyntaxOutlaw/homeassistant-heating-eph-ember/issues",
   "loggers": [
     "pyephember2"
   ],
-  "name": "EPH Ember",
   "quality_scale": "bronze",
   "requirements": [
     "pyephember2==0.4.12"
