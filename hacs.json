@@ -1,0 +1,5 @@
+{
+  "name": "EPH Controls (GW01 + current)",
+  "homeassistant": "2024.1.0",
+  "render_readme": true
+}

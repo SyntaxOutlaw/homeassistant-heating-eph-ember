@@ -56,6 +56,18 @@ Schedule times and programs are configured in the **EMBER app** or on the **time
 
 ## Install
 
+### HACS (recommended)
+
+1. Install [HACS](https://hacs.xyz/) if you don’t have it.
+2. **HACS → Integrations → ⋮ (menu) → Custom repositories**
+3. Repository: `https://github.com/SyntaxOutlaw/homeassistant-heating-eph-ember`
+4. Category: **Integration**
+5. Add it, then find **EPH Controls (GW01 + current)** and download.
+6. Restart Home Assistant.
+7. **Settings → Devices & services → Add integration → EPH Controls**
+
+This uses the same domain as the built-in `ephember` integration (`custom_components` wins). Remove any YAML `climate: - platform: ephember` block first.
+
 ### Manual / Docker bind-mount
 
 Copy or mount this package into your Home Assistant `custom_components` folder:

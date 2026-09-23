@@ -11,5 +11,5 @@
   "loggers": ["pyephember2"],
   "quality_scale": "bronze",
   "requirements": ["pyephember2==0.4.12"],
-  "version": "1.1.0"
+  "version": "1.2.0"
 }
