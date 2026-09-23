@@ -1,0 +1,101 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EPH Controls",
+        "description": "Sign in with your EMBER account. API version auto-detects GW01/EMBER-PS vs newer gateways.",
+        "data": {
+          "username": "Email",
+          "password": "Password",
+          "api_version": "API version"
+        },
+        "data_description": {
+          "api_version": "Use auto unless you need to force legacy or current."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate EPH Controls",
+        "description": "Password for {username} is no longer valid.",
+        "data": {
+          "password": "Password"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure EPH Controls",
+        "description": "Change which EMBER API generation this account uses.",
+        "data": {
+          "api_version": "API version"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password",
+      "cannot_connect": "Could not reach the EMBER cloud API"
+    },
+    "abort": {
+      "already_configured": "This EMBER account is already configured",
+      "reauth_successful": "Re-authentication successful",
+      "reconfigure_successful": "Reconfiguration successful",
+      "invalid_auth": "Invalid email or password",
+      "cannot_connect": "Could not reach the EMBER cloud API"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "EPH Controls options",
+        "data": {
+          "api_version": "API version"
+        }
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "zone": {
+        "name": "{name}",
+        "state_attributes": {
+          "hvac_modes": {
+            "heat": "Boost",
+            "heat_cool": "Advance",
+            "auto": "Auto",
+            "off": "Off"
+          },
+          "preset_modes": {
+            "all_day": "All day"
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "boost_zone": {
+      "name": "Boost zone",
+      "description": "Boost an EPH zone for a number of hours.",
+      "fields": {
+        "hours": {
+          "name": "Hours",
+          "description": "Boost duration (1-3 hours)."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Optional boost target temperature in Celsius."
+        }
+      }
+    },
+    "cancel_boost": {
+      "name": "Cancel boost",
+      "description": "Cancel an active boost on an EPH zone."
+    }
+  },
+  "issues": {
+    "deprecated_yaml": {
+      "title": "EPH Controls YAML configuration is deprecated",
+      "description": "Configuring EPH Controls in configuration.yaml is deprecated and will be removed. Remove the `ephember:` block and use the UI integration instead."
+    },
+    "deprecated_yaml_climate": {
+      "title": "EPH Controls climate YAML is deprecated",
+      "description": "The `climate: - platform: ephember` YAML configuration is deprecated. Remove that block after the UI config entry has been created."
+    }
+  }
+}

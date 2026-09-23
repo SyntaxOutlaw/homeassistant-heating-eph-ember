@@ -1,0 +1,13 @@
+{
+  "domain": "ephember",
+  "name": "EPH Controls",
+  "codeowners": ["@SyntaxOutlaw"],
+  "config_flow": true,
+  "documentation": "https://github.com/SyntaxOutlaw/homeassistant-heating-eph-ember",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/SyntaxOutlaw/homeassistant-heating-eph-ember/issues",
+  "loggers": ["pyephember2"],
+  "quality_scale": "bronze",
+  "requirements": ["pyephember2==0.4.12"],
+  "version": "1.0.0"
+}

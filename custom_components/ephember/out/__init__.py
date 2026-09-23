@@ -1,0 +1,1 @@
+"""Legacy outbound adapters."""
