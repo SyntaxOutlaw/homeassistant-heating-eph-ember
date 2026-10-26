@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
@@ -43,10 +44,22 @@ def build_heating_service(hass: HomeAssistant, entry: ConfigEntry) -> HeatingSer
     return HeatingService(legacy=legacy, current=current, api_version=api_version)
 
 
+# Keys scrubbed from shared diagnostics. username/title are the account email,
+# gateway_id is the gateway serial, and weather_location is a place name.
+TO_REDACT = {
+    "password",
+    "token",
+    "refresh_token",
+    "username",
+    "title",
+    "gateway_id",
+    "name",
+    "home_id",
+    "weather_location",
+    "invite_code",
+}
+
+
 def redact_config(data: dict) -> dict:
-    """Return a copy of config data with secrets removed."""
-    redacted = dict(data)
-    for key in ("password", "token", "refresh_token"):
-        if key in redacted:
-            redacted[key] = "**REDACTED**"
-    return redacted
+    """Return a copy of config data with secrets and identifiers removed."""
+    return async_redact_data(data, TO_REDACT)

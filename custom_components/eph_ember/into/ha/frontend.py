@@ -20,14 +20,20 @@ _CARD_PATH = "eph-ember-climate-card.js"
 _CARD_VERSION = "1.3.0"
 
 
+def _bundled_www() -> Path:
+    """Resolve the bundled www directory. Blocking filesystem access."""
+    return Path(__file__).resolve().parents[2] / "www"
+
+
 async def async_register_frontend(hass: HomeAssistant) -> None:
     """Serve www/ and ensure the Lovelace module resource exists."""
     if hass.data.get(_FRONTEND_KEY):
         return
     hass.data[_FRONTEND_KEY] = True
 
-    www = Path(__file__).resolve().parents[2] / "www"
-    if not www.is_dir():
+    # Path.resolve() and is_dir() are filesystem calls; keep them off the loop.
+    www = await hass.async_add_executor_job(_bundled_www)
+    if not await hass.async_add_executor_job(www.is_dir):
         _LOGGER.warning("EPH frontend www/ folder missing at %s", www)
         return
 
