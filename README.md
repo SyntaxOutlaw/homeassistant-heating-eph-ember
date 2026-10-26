@@ -40,7 +40,7 @@ Home Assistant’s stock [`ephember`](https://www.home-assistant.io/integrations
 - Climate per zone:
   - **Modes:** On (permanent), Boost (timed), Off
   - **Presets:** Schedule (follow the Ember timetable); Advance on current-API gateways
-- Gateway device info (model / hardware / serial) plus diagnostic sensors (invite code, weather location, frost, online status, …)
+- Gateway device info (model / hardware / serial) plus diagnostic sensors (weather location, frost, online status, …)
 - Optional Lovelace card with clearer mode / preset icons
 - Hexagonal layout: `domain/` · `ports/` · `into/ha/` · `out/`
 
@@ -146,7 +146,7 @@ custom_components/eph_ember/
   www/           # eph-ember-climate-card.js
 ```
 
-Legacy state: `POST /zones/polling`. Writes follow the classic `pyephember` payloads (`setTargetTemperature`, `setModel`, `boost`, `cancelBoost`). Home metadata is enriched from `/homes/detail` (invite code, weather, frost, …).
+Legacy state: `POST /zones/polling`. Writes follow the classic `pyephember` payloads (`setTargetTemperature`, `setModel`, `boost`, `cancelBoost`). Home metadata is enriched from `/homes/detail` (weather, frost, …).
 
 ## Development & testing
 

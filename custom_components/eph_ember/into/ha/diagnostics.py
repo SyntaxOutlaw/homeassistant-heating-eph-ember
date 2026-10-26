@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from ...const import DOMAIN
 from .coordinator import EphEmberDataUpdateCoordinator
-from .dependencies import redact_config
+from .dependencies import TO_REDACT
 
 
 async def async_get_config_entry_diagnostics(
@@ -26,7 +27,6 @@ async def async_get_config_entry_diagnostics(
             "zone_count": home.zone_count,
             "api_kind": home.api_kind.value,
             "home_id": home.home_id,
-            "invite_code": home.invite_code,
             "is_online": home.is_online,
             "weather_location": home.weather_location,
             "holiday_mode_active": home.holiday_mode_active,
@@ -53,12 +53,15 @@ async def async_get_config_entry_diagnostics(
         }
         for zone in coordinator.service.zones
     ]
-    return {
-        "entry": {
-            "title": entry.title,
-            "data": redact_config(dict(entry.data)),
-            "options": redact_config(dict(entry.options)),
+    return async_redact_data(
+        {
+            "entry": {
+                "title": entry.title,
+                "data": dict(entry.data),
+                "options": dict(entry.options),
+            },
+            "homes": homes,
+            "zones": zones,
         },
-        "homes": homes,
-        "zones": zones,
-    }
+        TO_REDACT,
+    )
