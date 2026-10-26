@@ -77,9 +77,6 @@
           "offline": "Offline"
         }
       },
-      "invite_code": {
-        "name": "Invite code"
-      },
       "weather_location": {
         "name": "Weather location"
       },

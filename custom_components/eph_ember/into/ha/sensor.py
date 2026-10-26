@@ -33,8 +33,8 @@ class _GatewayField:
 
 
 # Fields shown as separate diagnostic entities (visible under Device info).
+# invite_code is a join secret and is intentionally not exposed as an entity.
 _GATEWAY_FIELDS: tuple[_GatewayField, ...] = (
-    _GatewayField("invite_code", "mdi:qrcode", lambda h: h.invite_code),
     _GatewayField("weather_location", "mdi:map-marker", lambda h: h.weather_location),
     _GatewayField(
         "holiday_mode",
